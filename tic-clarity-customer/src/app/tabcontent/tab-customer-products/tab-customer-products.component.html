@@ -48,25 +48,27 @@
                     <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'Product_Description'"></i>
                     <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'Product_Description'"></i>
                 </th>
-                <th scope="col" class="clickable" width="275px" (click)="sortProducts('SKU')">
+                <th scope="col" class="clickable" width="250px" (click)="sortProducts('SKU')">
                     SKU
                     <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'SKU'"></i>
                     <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'SKU'"></i>
                 </th>
-                <th scope="col" class="clickable text-center" (click)="sortProducts('Balance')">
+                <th scope="col" class="clickable text-center" width="120px" (click)="sortProducts('Balance')">
                     Balance
                     <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'Balance'"></i>
                     <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'Balance'"></i>
                 </th>
-                <th scope="col" class="clickable text-center" (click)="sortProducts('Inbound')">
+                <!-- <th scope="col" class="clickable text-center" width="150px" (click)="sortProducts('Inbound')"> -->
+                <th scope="col" class="clickable text-center" width="150px" (click)="sortProducts('Actual_Inbound')">
                     Inbound
-                    <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'Inbound'"></i>
-                    <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'Inbound'"></i>
+                    <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'Actual_Inbound'"></i>
+                    <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'Actual_Inbound'"></i>
                 </th>
-                <th scope="col" class="clickable text-center" (click)="sortProducts('Outbound')">
+                <!-- <th scope="col" class="clickable text-center" width="150px" (click)="sortProducts('Outbound')"> -->
+                <th scope="col" class="clickable text-center" width="150px" (click)="sortProducts('Actual_Outbound')">
                     Outbound
-                    <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'Outbound'"></i>
-                    <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'Outbound'"></i>
+                    <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'Actual_Outbound'"></i>
+                    <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'Actual_Outbound'"></i>
                 </th>
                 <th scope="col" width="40px">
                     &nbsp;
@@ -75,7 +77,7 @@
         </thead>
         <tbody>
             <tr *ngFor="let product of products | productCatalog:productCatalogFilterArgs">
-                <td class="text-center">
+                <td id="{{product.SKU}}" class="text-center" [ngClass]="{'activeSelected': activateDiv(product)}">
                     <div class="d-flex flex-fill justify-content-center" (click)="cartProduct(product)">
                         <div class="d-flex justify-content-center" style="width: 100%; height:100%;">
                             <div class="d-flex add-to-cart-icon" *ngIf="!isInCart(product)"></div>
@@ -83,22 +85,28 @@
                         </div>
                     </div>
                 </td>
-                <td>
+                <td  [ngClass]="{'activeSelected': activateDiv(product)}">
                     {{product.Product_Description}}
                 </td>
-                <td>
+                <td  [ngClass]="{'activeSelected': activateDiv(product)}">
                     {{product.SKU}}
                 </td>
-                <td class="text-center">
+                <td class="text-center"  [ngClass]="{'activeSelected': activateDiv(product)}">
                     {{product.Balance}}
                 </td>
-                <td class="text-center">
-                    {{product.Inbound?product.Inbound:"-"}}
+                <td class="text-center"  [ngClass]="{'activeSelected': activateDiv(product)}">
+                    <!-- Amv1 -->
+                    <!-- {{product.Inbound?product.Inbound:"-"}} -->
+                    {{product.Actual_Inbound?product.Actual_Inbound:"-"}}
+                    <!-- Amv1 - end -->
                 </td>
-                <td class="text-center">
-                    {{product.Outbound?product.Outbound:"-"}}
+                <td class="text-center"  [ngClass]="{'activeSelected': activateDiv(product)}">
+                    <!-- Amv1 -->
+                    <!-- {{product.Outbound?product.Outbound:"-"}} -->
+                    {{product.Actual_Outbound?product.Actual_Outbound:"-"}}
+                    <!-- Amv1 - end -->
                 </td>
-                <td class="text-center">
+                <td class="text-center"  [ngClass]="{'activeSelected': activateDiv(product)}">
                     <div class="d-flex flex-row justify-content-center" style="width: 100%; height: 100%;">
                         <div class="d-flex flex-column justify-content-center">
                             <div [routerLink]="['profile', product.ID]"><i class="fas fa-arrow-right"></i></div>
