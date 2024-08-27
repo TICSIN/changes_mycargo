@@ -1,4 +1,9 @@
 <?php
+/*
+changelog
+----------
+Amv1 - Fix Product list not displaying products which does not have GIN but contain GRN record 
+*/
 
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Psr7\Response;
@@ -14,6 +19,7 @@ $app->get('/mycargo/products/list', function (Request $request, Response $respon
         $customerID = $queryParams['customer'];
     }
 
+    // var_dump($customerID);
     // var_dump($request->getParsedBody());
 
     $connection = db_Connect();
@@ -23,36 +29,43 @@ $app->get('/mycargo/products/list', function (Request $request, Response $respon
     $productSQL->execute();
     $productResults = $productSQL->get_result();
 
-    $product = $productResults->fetch_assoc();
+    // $product = $productResults->fetch_assoc();
 
-    //ammend - 02/08/2024
-    $stockStmt = "SELECT Total_GRN.Product_ID, Total_GRN.Part_No, Total_GRN.Product_Name, Total_GRN.Product_Description, Total_GRN.Unique_Product_Code,
-    Total_GRN.SKU, Total_GRN.Serialised,
-    (Total_GRN.Total_Checked_In - IFNULL(Total_GIN.Total_Checked_Out, '0')) as Balance,
-    CAST(Total_GRN.Total_Expected_In AS UNSIGNED) as Expected_Inbound, CAST(Total_GIN.Total_Expected_Out AS UNSIGNED) as Expected_Outbound,
-    CAST(Total_GRN.Total_Checked_In AS UNSIGNED) as Actual_Inbound, CAST(Total_GIN.Total_Checked_Out AS UNSIGNED) as Actual_Outbound
-    FROM
-    (SELECT D.ID as Product_ID, D.Part_No as Part_No, D.Product_Name as Product_Name, D.Product_Description as Product_Description,
-    D.Unique_Product_Code as Unique_Product_Code, D.SKU as SKU, D.Serialised as Serialised,
-    A.Item_Record_ID, SUM(A.Actual_Quantity*A.Denominator) as Total_Checked_In, SUM(A.Quantity) as Total_Expected_In,
-    ANY_VALUE(B.Expected_Date)
-    FROM goods_received_item_records A
-    LEFT JOIN goods_receipt_notes B ON A.Goods_Receipt_Note = B.ID
-    LEFT JOIN item_records C ON C.ID = A.Item_Record_ID
-    LEFT JOIN products D ON C.Product_ID = D.ID
-    WHERE D.Owner_ID = ?
-    GROUP BY D.ID) Total_GRN
-    LEFT JOIN
-    (SELECT D.ID as Product_ID, A.Item_Record_ID, SUM(A.Actual_Quantity*A.Denominator) as Total_Checked_Out, SUM(A.Quantity) as Total_Expected_Out,
-    ANY_VALUE(B.Expected_Date)
-    FROM goods_issued_item_records as A
-    LEFT JOIN goods_issued_notes B ON A.Goods_Issued_Note_ID = B.ID
-    LEFT JOIN item_records C ON C.ID = A.Item_record_ID
-    LEFT JOIN products D ON C.Product_ID = D.ID
-    WHERE D.Owner_ID = ?
-    GROUP BY D.ID) Total_GIN
-    ON Total_GRN.Product_ID = Total_GIN.Product_ID
-    GROUP BY Total_GIN.Product_ID";
+    //Amv1
+    $product = array();
+
+    //Amv1
+    $stockStmt ="SELECT Total_GRN.Product_ID, Total_GRN.Part_No, Total_GRN.Product_Name, Total_GRN.Product_Description, Total_GRN.Unique_Product_Code,
+                Total_GRN.SKU, Total_GRN.Serialised,(Total_GRN.Total_Checked_In - IFNULL(Total_GIN.Total_Checked_Out, '0')) as Balance,
+                CAST(Total_GRN.Total_Expected_In AS UNSIGNED) as Expected_Inbound, CAST(Total_GIN.Total_Expected_Out AS UNSIGNED) as Expected_Outbound,
+                CAST(Total_GRN.Total_Checked_In AS UNSIGNED) as Actual_Inbound, CAST(Total_GIN.Total_Checked_Out AS UNSIGNED) as Actual_Outbound
+                FROM
+                (
+                SELECT D.ID as Product_ID, D.Part_No as Part_No, D.Product_Name as Product_Name, D.Product_Description as Product_Description,
+                D.Unique_Product_Code as Unique_Product_Code, D.SKU as SKU, D.Serialised as Serialised,
+                A.Item_Record_ID, SUM(A.Actual_Quantity*A.Denominator) as Total_Checked_In, SUM(A.Quantity) as Total_Expected_In,
+                ANY_VALUE(B.Expected_Date)
+                FROM goods_received_item_records A
+                LEFT JOIN goods_receipt_notes B ON A.Goods_Receipt_Note = B.ID
+                LEFT JOIN item_records C ON C.ID = A.Item_Record_ID
+                LEFT JOIN products D ON C.Product_ID = D.ID
+                WHERE D.Owner_ID = ?
+                GROUP BY D.ID
+                ) Total_GRN
+                LEFT JOIN
+                (
+                SELECT D.ID as Product_ID, A.Item_Record_ID, SUM(A.Actual_Quantity*A.Denominator) as Total_Checked_Out, SUM(A.Quantity) as Total_Expected_Out,
+                ANY_VALUE(B.Expected_Date)
+                FROM goods_issued_item_records as A
+                LEFT JOIN goods_issued_notes B ON A.Goods_Issued_Note_ID = B.ID
+                LEFT JOIN item_records C ON C.ID = A.Item_record_ID
+                LEFT JOIN products D ON C.Product_ID = D.ID
+                WHERE D.Owner_ID = ?
+                GROUP BY D.ID
+                ) Total_GIN
+                ON Total_GRN.Product_ID = Total_GIN.Product_ID
+                GROUP BY Total_GRN.Product_ID;";
+    
     
     $stockSQL = $connection->prepare($stockStmt);
     $stockSQL->bind_param('ss', $customerID,  $customerID);
@@ -67,64 +80,6 @@ $app->get('/mycargo/products/list', function (Request $request, Response $respon
     //This make the SQL query slow and use more IO in database as the query will run for each of the record generated.
     //As DB size goes up, it will more slower
     while ($stock = $stockResult->fetch_assoc()) {
-        // // $stockStmt = "SELECT Product_ID, SUM(Balance) as Balance, 
-        // // SUM(Total_Expected_In) as Expected_Inbound, SUM(Total_Expected_Out) as Expected_Outbound, 
-		// // SUM(Total_Checked_In) as Actual_Inbound, SUM(Total_Checked_Out) as Actual_Outbound
-		// // FROM
-		// // (SELECT Product_ID, (Total_GRN.Total_Checked_In - IFNULL(Total_GIN.Total_Checked_Out, '0')) as Balance,
-		// // (Total_GRN.Total_Expected_In - IFNULL(Total_GIN.Total_Expected_Out, '0')) as Expected_Stock, 
-        // // Total_GRN.Total_Expected_In, Total_GIN.Total_Expected_Out,
-		// // Total_GRN.Total_Checked_In, Total_GIN.Total_Checked_Out
-		// //  FROM
-		// // (SELECT D.ID as Product_ID, A.Item_Record_ID, SUM(A.Actual_Quantity*A.Denominator) as Total_Checked_In, SUM(A.Quantity) as Total_Expected_In, B.Expected_Date 
-		// // FROM goods_received_item_records A 
-		// // LEFT JOIN goods_receipt_notes B ON A.Goods_Receipt_Note = B.ID 
-		// // LEFT JOIN item_records C ON C.ID = A.Item_Record_ID
-		// // LEFT JOIN products D ON C.Product_ID = D.ID AND D.ID = ?
-		// // WHERE D.Owner_ID = ?
-		// // -- GROUP BY Item_Record_ID)
-        // // GROUP BY D.ID)
-		// //  as Total_GRN
-		// // LEFT JOIN
-		// // (SELECT D.ID as Product_ID, A.Item_Record_ID, SUM(A.Actual_Quantity*A.Denominator) as Total_Checked_Out, SUM(A.Quantity) as Total_Expected_Out, B.Expected_Date
-		// // FROM goods_issued_item_records as A 
-		// // LEFT JOIN goods_issued_notes B ON A.Goods_Issued_Note_ID = B.ID
-		// // LEFT JOIN item_records C ON C.ID = A.Item_Record_ID
-		// // LEFT JOIN products D ON C.Product_ID = D.ID AND D.ID = ?
-		// // WHERE D.Owner_ID = ?
-		// // -- GROUP BY Item_Record_ID)
-        // // GROUP BY D.ID)
-		// //  as Total_GIN
-		// // ON Total_GRN.Item_Record_ID = Total_GIN.Item_Record_ID) as Product_Catalog GROUP BY Product_ID";
-
-        // $stockStmt = "SELECT Total_GRN.Product_ID, (Total_GRN.Total_Checked_In - IFNULL(Total_GIN.Total_Checked_Out, '0')) as Balance,
-        // Total_GRN.Total_Expected_In as Expected_Inbound, Total_GIN.Total_Expected_Out as Expected_Out,
-        // Total_GRN.Total_Checked_In as Actual_Inbound, Total_GIN.Total_Checked_Out as Actual_Checked_Out
-        // FROM
-        // (SELECT D.ID as Product_ID, A.Item_Record_ID, SUM(A.Actual_Quantity*A.Denominator) as Total_Checked_In, SUM(A.Quantity) as Total_Expected_In,
-        // ANY_VALUE(B.Expected_Date)
-        // FROM goods_received_item_records A
-        // LEFT JOIN goods_receipt_notes B ON A.Goods_Receipt_Note = B.ID
-        // LEFT JOIN item_records C ON C.ID = A.Item_Record_ID
-        // LEFT JOIN products D ON C.Product_ID = D.ID and D.ID = ?
-        // WHERE D.Owner_ID = ?
-        // GROUP BY D.ID) Total_GRN
-        // LEFT JOIN
-        // (SELECT D.ID as Product_ID, A.Item_Record_ID, SUM(A.Actual_Quantity*A.Denominator) as Total_Checked_Out, SUM(A.Quantity) as Total_Expected_Out,
-        // ANY_VALUE(B.Expected_Date)
-        // FROM goods_issued_item_records as A
-        // LEFT JOIN goods_issued_notes B ON A.Goods_Issued_Note_ID = B.ID
-        // LEFT JOIN item_records C ON C.ID = A.Item_record_ID
-        // LEFT JOIN products D ON C.Product_ID = D.ID AND D.ID = ?
-        // WHERE D.Owner_ID = ?
-        // GROUP BY D.ID) Total_GIN
-        // ON Total_GRN.Product_ID = Total_GIN.Product_ID";
-
-        // $stockSQL = $connection->prepare($stockStmt);
-        // $stockSQL->bind_param('ssss', $product['ID'], $customerID, $product['ID'],  $customerID);
-        // $stockSQL->execute();
-        // $stockResult = $stockSQL->get_result();
-        // $stock = $stockResult->fetch_assoc();
 
         //amend - 02/08/2024
         $product['ID'] = $stock['Product_ID'];
@@ -162,7 +117,7 @@ $app->get('/mycargo/products/list', function (Request $request, Response $respon
             $product['Actual_Outbound'] = "-";
         }
         $products[] = $product;
-    }
+    };
 
     usort($products, function ($a, $b) {
         if ($a['Balance'] == "-") return 1;
