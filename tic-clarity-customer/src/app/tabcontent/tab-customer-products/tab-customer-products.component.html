@@ -1,0 +1,111 @@
+<div class="d-flex flex-row" *ngIf="!isLoading && products.length > 0">
+    <div class="d-flex flex-fill mb-3" *ngIf="!isLoading">
+        <div class="input-group">
+            <div class="input-group-prepend icon-left pt-2 pl-2 pr-2">
+                <i class="fas fa-search muted"></i>
+            </div>
+            <input class="form-control form-control-right" placeholder="Search for products" [(ngModel)]="productCatalogFilterArgs">
+        </div>
+    </div>
+    <div class="d-flex flex-fill">
+        &nbsp;
+    </div>
+</div>
+<div class="d-flex flex-row flex-fill justify-content-center" *ngIf="isLoading">
+    <div class="d-flex flex-column justify-content-center">
+        <div class="d-flex flex-row justify-content-center">
+            <img class='d-flex mb-2' width="158px" src="./assets/image_warehouse shelve.png">
+        </div>
+        <div class="d-flex flex-column justify-content-center mb-3">
+            <strong>Please wait a moment while the content loads</strong>
+        </div>
+        <div class="d-flex flex-row justify-content-center">
+            <div class="progress">
+                <div class="indeterminate"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="d-flex flex-row flex-fill justify-content-center" *ngIf="products && products.length == 0 && !isLoading">
+    <div class="d-flex flex-column justify-content-center">
+        <div class="d-flex flex-row justify-content-center">
+            <img class='d-flex mb-2' width="158px" src="./assets/image_warehouse_unavailable.svg">
+        </div>
+        <div class="d-flex flex-column justify-content-center mb-3">
+            <strong>We are unable to find any products.</strong>
+        </div>
+    </div>
+</div>
+<div class="d-flex table-responsive" *ngIf="products&&products.length > 0">
+    <table class='table table-bordered table-striped' *ngIf="!isLoading">
+        <thead>
+            <tr>
+                <th scope="col" width="30px">
+                    &nbsp;
+                </th>
+                <th scope="col" class="clickable" width="400px" (click)="sortProducts('Product_Description')">
+                    Product Description
+                    <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'Product_Description'"></i>
+                    <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'Product_Description'"></i>
+                </th>
+                <th scope="col" class="clickable" width="275px" (click)="sortProducts('SKU')">
+                    SKU
+                    <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'SKU'"></i>
+                    <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'SKU'"></i>
+                </th>
+                <th scope="col" class="clickable text-center" (click)="sortProducts('Balance')">
+                    Balance
+                    <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'Balance'"></i>
+                    <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'Balance'"></i>
+                </th>
+                <th scope="col" class="clickable text-center" (click)="sortProducts('Inbound')">
+                    Inbound
+                    <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'Inbound'"></i>
+                    <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'Inbound'"></i>
+                </th>
+                <th scope="col" class="clickable text-center" (click)="sortProducts('Outbound')">
+                    Outbound
+                    <i class="fas fa-caret-up" *ngIf="sortDir == 'asc' && sortBy == 'Outbound'"></i>
+                    <i class="fas fa-caret-down" *ngIf="sortDir == 'dsc' && sortBy == 'Outbound'"></i>
+                </th>
+                <th scope="col" width="40px">
+                    &nbsp;
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let product of products | productCatalog:productCatalogFilterArgs">
+                <td class="text-center">
+                    <div class="d-flex flex-fill justify-content-center" (click)="cartProduct(product)">
+                        <div class="d-flex justify-content-center" style="width: 100%; height:100%;">
+                            <div class="d-flex add-to-cart-icon" *ngIf="!isInCart(product)"></div>
+                            <div class="d-flex" *ngIf="isInCart(product)">&nbsp;</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    {{product.Product_Description}}
+                </td>
+                <td>
+                    {{product.SKU}}
+                </td>
+                <td class="text-center">
+                    {{product.Balance}}
+                </td>
+                <td class="text-center">
+                    {{product.Inbound?product.Inbound:"-"}}
+                </td>
+                <td class="text-center">
+                    {{product.Outbound?product.Outbound:"-"}}
+                </td>
+                <td class="text-center">
+                    <div class="d-flex flex-row justify-content-center" style="width: 100%; height: 100%;">
+                        <div class="d-flex flex-column justify-content-center">
+                            <div [routerLink]="['profile', product.ID]"><i class="fas fa-arrow-right"></i></div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
